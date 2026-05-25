@@ -9,23 +9,28 @@ def main(page: ft.Page):
         page.title = "Serien Tracker Pro"
         page.scroll = ft.ScrollMode.AUTO
         
-        # Sichert den Abstand zur Android-Statusleiste
-        page.padding = ft.padding.only(top=35, left=10, right=10, bottom=10)
+        # FIX FÜR PADDING IN FLET 0.85.1:
+        # Wir nutzen page.window_padding oder setzen es direkt als Zahl/Kombination,
+        # um den alten Bug komplett zu umgehen.
+        page.padding = 10 
 
         # --- DATEN LADEN ---
         def laden():
             default_data = {
                 "One Piece": {
                     "aktuelle_staffel": 15, "aktuelle_folge": 52,
-                    "staffeln": {"1": 61, "2": 16, "3": 14, "4": 39, "5": 13, "6": 52, "7": 33, "8": 35, "9": 73, "10": 45, "11": 26, "12": 14, "13": 101, "14": 58, "15": 62, "16": 50, "17": 56, "18": 55, "19": 74, "20": 14, "21": 197, "22": 67}
+                    "staffeln": {"1": 61, "2": 16, "3": 14, "4": 39, "5": 13, "6": 52, "7": 33, "8": 35, "9": 73, "10": 45, "11": 26, "12": 14, "13": 101, "14": 58, "15": 62, "16": 50, "17": 56, "18": 55, "19": 74, "20": 14, "21": 197, "22": 67},
+                    "zuletzt_geöffnet": True
                 },
                 "YU-GI-OH! 5Ds": {
                     "aktuelle_staffel": 1, "aktuelle_folge": 7,
-                    "staffeln": {"1": 26, "2": 38, "3": 28, "4": 24}
+                    "staffeln": {"1": 26, "2": 38, "3": 28, "4": 24},
+                    "zuletzt_geöffnet": False
                 },
                 "Highschool DxD": {
                     "aktuelle_staffel": 3, "aktuelle_folge": 5,
-                    "staffeln": {"1": 12, "2": 12, "3": 12, "4": 13}
+                    "staffeln": {"1": 12, "2": 12, "3": 12, "4": 13},
+                    "zuletzt_geöffnet": False
                 }
             }
             try:
@@ -38,9 +43,15 @@ def main(page: ft.Page):
 
         data = laden()
         if not isinstance(data, dict) or not data:
-            data = {"One Piece": {"aktuelle_staffel": 1, "aktuelle_folge": 1, "staffeln": {"1": 20}}}
+            data = {"One Piece": {"aktuelle_staffel": 1, "aktuelle_folge": 1, "staffeln": {"1": 20}, "zuletzt_geöffnet": True}}
             
+        # --- FEATURE: ZULETZT GESCHAUTE SERIE ERMITTELN ---
         aktuelle_serie = list(data.keys())[0]
+        for k, v in data.items():
+            if v.get("zuletzt_geöffnet", False):
+                aktuelle_serie = k
+                break
+
         dynamische_felder = []
 
         # --- DATEN SPEICHERN ---
@@ -54,7 +65,6 @@ def main(page: ft.Page):
         # --- ANZEIGE AKTUALISIEREN ---
         def update_anzeige():
             nonlocal aktuelle_serie
-            # Lösch-Bestätigung bei jedem Wechsel zurücksetzen
             btn_loeschen.text = ""
             btn_loeschen.icon = ft.icons.DELETE_OUTLINE
             btn_loeschen.bgcolor = ft.colors.RED_50
@@ -62,6 +72,11 @@ def main(page: ft.Page):
             if aktuelle_serie and aktuelle_serie in data:
                 s = data[aktuelle_serie]
                 status_label.value = f"{aktuelle_serie}\n\nStaffel {s['aktuelle_staffel']}  |  Folge {s['aktuelle_folge']}"
+                
+                # Zuletzt geöffneten Status in den Daten aktualisieren
+                for k in data.keys():
+                    data[k]["zuletzt_geöffnet"] = (k == aktuelle_serie)
+                speichern()
             else:
                 status_label.value = "Keine Serien vorhanden."
             page.update()
@@ -72,24 +87,20 @@ def main(page: ft.Page):
                 aktuelle_serie = dropdown.value
                 update_anzeige()
 
-        # --- SERIE LÖSCHEN (MIT BESTÄTIGUNG) ---
+        # --- SERIE LÖSCHEN ---
         def serie_loeschen_klick(e):
             nonlocal aktuelle_serie
             if not aktuelle_serie or aktuelle_serie not in data: return
 
-            # Schritt 1: Wenn der Button noch im Normalzustand ist, frage nach Bestätigung
             if btn_loeschen.text == "":
                 btn_loeschen.text = "Wirklich löschen? [JA]"
                 btn_loeschen.icon = ft.icons.DELETE_FOREVER
                 btn_loeschen.bgcolor = ft.colors.RED_700
                 page.update()
-            
-            # Schritt 2: Wenn der User ein zweites Mal draufklickt, wird gelöscht!
             else:
                 del data[aktuelle_serie]
                 speichern()
 
-                # Dropdown-Optionen neu aufbauen
                 dropdown.options = [ft.dropdown.Option(k) for k in data.keys()]
                 
                 if data:
@@ -169,7 +180,8 @@ def main(page: ft.Page):
             data[name] = {
                 "aktuelle_staffel": 1,
                 "aktuelle_folge": 1,
-                "staffeln": staffel_mapping
+                "staffeln": staffel_mapping,
+                "zuletzt_geöffnet": True
             }
             speichern()
             
@@ -196,7 +208,6 @@ def main(page: ft.Page):
 
         btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=280, height=40)
         
-        # Der kleine, dezente Löschknopf neben dem Laden-Knopf
         btn_loeschen = ft.IconButton(
             icon=ft.icons.DELETE_OUTLINE,
             icon_color=ft.colors.RED_900,
@@ -217,11 +228,19 @@ def main(page: ft.Page):
         dynamischer_bereich = ft.Column(spacing=10)
         btn_add = ft.ElevatedButton("Serie endgültig speichern", on_click=neue_serie_speichern, width=350, height=50, visible=False)
 
+        # FIX FÜR ANDROID-LEISTE: Ein schicker Header-Container ganz oben, 
+        # der 40 Pixel hoch ist und die Android-Statusleiste elegant nach unten drückt.
+        header_puffer = ft.Container(
+            content=ft.Text("SERIEN TRACKER PRO", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_GREY_400),
+            alignment=ft.alignment.center,
+            height=40,
+            margin=0
+        )
+
         # Layout aufbauen
         page.add(
-            ft.Container(height=10), 
+            header_puffer, # Fängt die Statusleiste ab!
             dropdown,
-            # Beide Buttons nebeneinander in einer Reihe platziert
             ft.Row([btn_waehlen, btn_loeschen], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
             status_container,
             ft.Row([btn_zurueck, btn_vor], alignment=ft.MainAxisAlignment.CENTER),
