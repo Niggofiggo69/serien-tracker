@@ -9,9 +9,7 @@ def main(page: ft.Page):
         page.title = "Serien Tracker Pro"
         page.scroll = ft.ScrollMode.AUTO
         
-        # FIX FÜR PADDING IN FLET 0.85.1:
-        # Wir nutzen page.window_padding oder setzen es direkt als Zahl/Kombination,
-        # um den alten Bug komplett zu umgehen.
+        # Altes Flet-kompatibles Padding
         page.padding = 10 
 
         # --- DATEN LADEN ---
@@ -45,7 +43,6 @@ def main(page: ft.Page):
         if not isinstance(data, dict) or not data:
             data = {"One Piece": {"aktuelle_staffel": 1, "aktuelle_folge": 1, "staffeln": {"1": 20}, "zuletzt_geöffnet": True}}
             
-        # --- FEATURE: ZULETZT GESCHAUTE SERIE ERMITTELN ---
         aktuelle_serie = list(data.keys())[0]
         for k, v in data.items():
             if v.get("zuletzt_geöffnet", False):
@@ -65,15 +62,15 @@ def main(page: ft.Page):
         # --- ANZEIGE AKTUALISIEREN ---
         def update_anzeige():
             nonlocal aktuelle_serie
+            # FIX: Nutzen nur noch das kompatible ft.icons.DELETE
             btn_loeschen.text = ""
-            btn_loeschen.icon = ft.icons.DELETE_OUTLINE
+            btn_loeschen.icon = ft.icons.DELETE
             btn_loeschen.bgcolor = ft.colors.RED_50
             
             if aktuelle_serie and aktuelle_serie in data:
                 s = data[aktuelle_serie]
                 status_label.value = f"{aktuelle_serie}\n\nStaffel {s['aktuelle_staffel']}  |  Folge {s['aktuelle_folge']}"
                 
-                # Zuletzt geöffneten Status in den Daten aktualisieren
                 for k in data.keys():
                     data[k]["zuletzt_geöffnet"] = (k == aktuelle_serie)
                 speichern()
@@ -94,7 +91,7 @@ def main(page: ft.Page):
 
             if btn_loeschen.text == "":
                 btn_loeschen.text = "Wirklich löschen? [JA]"
-                btn_loeschen.icon = ft.icons.DELETE_FOREVER
+                btn_loeschen.icon = ft.icons.DELETE
                 btn_loeschen.bgcolor = ft.colors.RED_700
                 page.update()
             else:
@@ -208,8 +205,9 @@ def main(page: ft.Page):
 
         btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=280, height=40)
         
+        # FIX: Hier nutzen wir jetzt ft.icons.DELETE
         btn_loeschen = ft.IconButton(
-            icon=ft.icons.DELETE_OUTLINE,
+            icon=ft.icons.DELETE,
             icon_color=ft.colors.RED_900,
             bgcolor=ft.colors.RED_50,
             on_click=serie_loeschen_klick,
@@ -228,8 +226,6 @@ def main(page: ft.Page):
         dynamischer_bereich = ft.Column(spacing=10)
         btn_add = ft.ElevatedButton("Serie endgültig speichern", on_click=neue_serie_speichern, width=350, height=50, visible=False)
 
-        # FIX FÜR ANDROID-LEISTE: Ein schicker Header-Container ganz oben, 
-        # der 40 Pixel hoch ist und die Android-Statusleiste elegant nach unten drückt.
         header_puffer = ft.Container(
             content=ft.Text("SERIEN TRACKER PRO", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_GREY_400),
             alignment=ft.alignment.center,
@@ -239,7 +235,7 @@ def main(page: ft.Page):
 
         # Layout aufbauen
         page.add(
-            header_puffer, # Fängt die Statusleiste ab!
+            header_puffer,
             dropdown,
             ft.Row([btn_waehlen, btn_loeschen], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
             status_container,
