@@ -8,6 +8,10 @@ def main(page: ft.Page):
     try:
         page.title = "Serien Tracker Pro"
         page.scroll = ft.ScrollMode.AUTO
+        
+        # FIX FÜR ANDROID STATUSLEISTE: 
+        # Wir geben der Seite ein inneres Padding, damit oben nichts gequetscht wird
+        page.padding = ft.padding.only(top=35, left=10, right=10, bottom=10)
 
         # --- DATEN LADEN ---
         def laden():
@@ -38,8 +42,6 @@ def main(page: ft.Page):
             data = {"One Piece": {"aktuelle_staffel": 1, "aktuelle_folge": 1, "staffeln": {"1": 20}}}
             
         aktuelle_serie = list(data.keys())[0]
-
-        # Liste, um die dynamischen Textfelder für die einzelnen Staffeln zu merken
         dynamische_felder = []
 
         # --- DATEN SPEICHERN ---
@@ -98,47 +100,39 @@ def main(page: ft.Page):
             speichern()
             update_anzeige()
 
-        # --- SCHRITT 1: STAFFEL-FELDER GENERIEREN ---
         def staffeln_generieren(e):
             name = name_input.value.strip()
-            if not name or name in data:
-                return
+            if not name or name in data: return
             try:
                 anzahl_st = int(staffeln_input.value)
-                if anzahl_st <= 0 or anzahl_st > 50: return # Schutz vor zu vielen Feldern
+                if anzahl_st <= 0 or anzahl_st > 50: return
             except:
                 return
 
-            # Alte dynamische Felder löschen
             dynamischer_bereich.controls.clear()
             dynamische_felder.clear()
 
-            # Für jede Staffel ein eigenes Eingabefeld erzeugen
             for i in range(1, anzahl_st + 1):
                 feld = ft.TextField(label=f"Folgen für Staffel {i}", keyboard_type=ft.KeyboardType.NUMBER, width=350)
                 dynamische_felder.append((str(i), feld))
                 dynamischer_bereich.controls.append(feld)
             
-            # Speicherbutton sichtbar machen
             btn_add.visible = True
             page.update()
 
-        # --- SCHRITT 2: NEUE SERIE ENDGÜLTIG SPEICHERN ---
         def neue_serie_speichern(e):
             name = name_input.value.strip()
             if not name or name in data: return
             
             staffel_mapping = {}
             try:
-                # Alle einzeln eingegebenen Folgen auslesen
                 for st_nr, feld in dynamische_felder:
                     folgen = int(feld.value)
                     if folgen <= 0: return
                     staffel_mapping[st_nr] = folgen
             except:
-                return # Falls ein Feld leer war oder keine Zahl hatte
+                return
             
-            # In Datenstruktur packen
             data[name] = {
                 "aktuelle_staffel": 1,
                 "aktuelle_folge": 1,
@@ -146,13 +140,11 @@ def main(page: ft.Page):
             }
             speichern()
             
-            # Dropdown aktualisieren
             dropdown.options.append(ft.dropdown.Option(name))
             dropdown.value = name
             nonlocal aktuelle_serie
             aktuelle_serie = name
             
-            # Eingaben zurücksetzen
             name_input.value = ""
             staffeln_input.value = ""
             dynamischer_bereich.controls.clear()
@@ -175,19 +167,16 @@ def main(page: ft.Page):
         btn_zurueck = ft.ElevatedButton("<< Zurück", on_click=folge_zurueck, width=160, height=50)
         btn_vor = ft.ElevatedButton("Gesehen >>", on_click=folge_erhoehen, width=160, height=50)
 
-        # Eingabebereich für neue Serien
         name_input = ft.TextField(label="Serienname", width=350)
         staffeln_input = ft.TextField(label="Anzahl Staffeln gesamt", keyboard_type=ft.KeyboardType.NUMBER, width=350)
         btn_generate = ft.ElevatedButton("Folgen-Felder anzeigen", on_click=staffeln_generieren, width=350, height=40)
-        
-        # Ein leerer Container (Spalte), in den wir gleich die einzelnen Felder reinladen
         dynamischer_bereich = ft.Column(spacing=10)
-        
-        # Der finale Speicherbutton (wird erst nach dem Generieren eingeblendet)
         btn_add = ft.ElevatedButton("Serie endgültig speichern", on_click=neue_serie_speichern, width=350, height=50, visible=False)
 
         # Layout aufbauen
         page.add(
+            # FIX: Ein unsichtbarer Puffer-Container ganz oben, der Platz für die Android-Leiste schafft
+            ft.Container(height=10), 
             dropdown,
             btn_waehlen,
             status_container,
@@ -197,7 +186,7 @@ def main(page: ft.Page):
             name_input,
             staffeln_input,
             btn_generate,
-            dynamischer_bereich, # Hier ploppen die Felder einzeln auf
+            dynamischer_bereich,
             ft.Container(height=10),
             btn_add
         )
