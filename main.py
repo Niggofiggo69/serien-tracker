@@ -9,8 +9,7 @@ def main(page: ft.Page):
         page.title = "Serien Tracker Pro"
         page.scroll = ft.ScrollMode.AUTO
         
-        # FIX FÜR ANDROID STATUSLEISTE: 
-        # Wir geben der Seite ein inneres Padding, damit oben nichts gequetscht wird
+        # Sichert den Abstand zur Android-Statusleiste
         page.padding = ft.padding.only(top=35, left=10, right=10, bottom=10)
 
         # --- DATEN LADEN ---
@@ -55,6 +54,11 @@ def main(page: ft.Page):
         # --- ANZEIGE AKTUALISIEREN ---
         def update_anzeige():
             nonlocal aktuelle_serie
+            # Lösch-Bestätigung bei jedem Wechsel zurücksetzen
+            btn_loeschen.text = ""
+            btn_loeschen.icon = ft.icons.DELETE_OUTLINE
+            btn_loeschen.bgcolor = ft.colors.RED_50
+            
             if aktuelle_serie and aktuelle_serie in data:
                 s = data[aktuelle_serie]
                 status_label.value = f"{aktuelle_serie}\n\nStaffel {s['aktuelle_staffel']}  |  Folge {s['aktuelle_folge']}"
@@ -66,6 +70,35 @@ def main(page: ft.Page):
             nonlocal aktuelle_serie
             if dropdown.value:
                 aktuelle_serie = dropdown.value
+                update_anzeige()
+
+        # --- SERIE LÖSCHEN (MIT BESTÄTIGUNG) ---
+        def serie_loeschen_klick(e):
+            nonlocal aktuelle_serie
+            if not aktuelle_serie or aktuelle_serie not in data: return
+
+            # Schritt 1: Wenn der Button noch im Normalzustand ist, frage nach Bestätigung
+            if btn_loeschen.text == "":
+                btn_loeschen.text = "Wirklich löschen? [JA]"
+                btn_loeschen.icon = ft.icons.DELETE_FOREVER
+                btn_loeschen.bgcolor = ft.colors.RED_700
+                page.update()
+            
+            # Schritt 2: Wenn der User ein zweites Mal draufklickt, wird gelöscht!
+            else:
+                del data[aktuelle_serie]
+                speichern()
+
+                # Dropdown-Optionen neu aufbauen
+                dropdown.options = [ft.dropdown.Option(k) for k in data.keys()]
+                
+                if data:
+                    aktuelle_serie = list(data.keys())[0]
+                    dropdown.value = aktuelle_serie
+                else:
+                    aktuelle_serie = ""
+                    dropdown.value = None
+                
                 update_anzeige()
 
         def folge_erhoehen(e):
@@ -161,7 +194,18 @@ def main(page: ft.Page):
             value=aktuelle_serie
         )
 
-        btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=350, height=40)
+        btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=280, height=40)
+        
+        # Der kleine, dezente Löschknopf neben dem Laden-Knopf
+        btn_loeschen = ft.IconButton(
+            icon=ft.icons.DELETE_OUTLINE,
+            icon_color=ft.colors.RED_900,
+            bgcolor=ft.colors.RED_50,
+            on_click=serie_loeschen_klick,
+            width=60,
+            height=40
+        )
+
         status_label = ft.Text(value="", size=20, text_align=ft.TextAlign.CENTER)
         status_container = ft.Container(content=status_label, padding=20, border_radius=10, width=350, height=150)
         btn_zurueck = ft.ElevatedButton("<< Zurück", on_click=folge_zurueck, width=160, height=50)
@@ -175,10 +219,10 @@ def main(page: ft.Page):
 
         # Layout aufbauen
         page.add(
-            # FIX: Ein unsichtbarer Puffer-Container ganz oben, der Platz für die Android-Leiste schafft
             ft.Container(height=10), 
             dropdown,
-            btn_waehlen,
+            # Beide Buttons nebeneinander in einer Reihe platziert
+            ft.Row([btn_waehlen, btn_loeschen], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
             status_container,
             ft.Row([btn_zurueck, btn_vor], alignment=ft.MainAxisAlignment.CENTER),
             ft.Container(height=20),
