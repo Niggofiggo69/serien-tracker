@@ -18,14 +18,18 @@ jobs:
         with:
           python-version: '3.10'
 
-      # Hier richten wir jetzt die exakte Flutter-Version ein, die Flet 0.85.1 mag
+      # Richten wir Flutter ein
       - name: Flutter einrichten
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.10.6' 
           channel: 'stable'
 
-      # Wir stellen sicher, dass alle nötigen Werkzeuge da sind
+      # Hier zwingen wir das System, Flutter global zu erkennen
+      - name: Flutter in PATH registrieren
+        run: |
+          echo "$FLUTTER_HOME/bin" >> $GITHUB_PATH
+
       - name: Android SDK Lizenzen akzeptieren
         run: yes | sdkmanager --licenses || true
 
@@ -33,10 +37,10 @@ jobs:
         run: |
           pip install flet==0.85.1
 
-      # FIX: Wir hängen --no-prompt an, damit Flet nicht mehr nachfragt!
+      # Jetzt ganz normal ohne den fehlerhaften Parameter
       - name: APK builden
         run: |
-          flet build apk --no-prompt
+          flet build apk
 
       - name: APK als Download bereitstellen
         uses: actions/upload-artifact@v4
