@@ -18,18 +18,25 @@ jobs:
         with:
           python-version: '3.10'
 
+      # Hier richten wir jetzt die exakte Flutter-Version ein, die Flet 0.85.1 mag
       - name: Flutter einrichten
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.10.6' 
           channel: 'stable'
+
+      # Wir stellen sicher, dass alle nötigen Werkzeuge da sind
+      - name: Android SDK Lizenzen akzeptieren
+        run: yes | sdkmanager --licenses || true
 
       - name: Flet CLI & Abhängigkeiten installieren
         run: |
           pip install flet==0.85.1
 
+      # FIX: Wir hängen --no-prompt an, damit Flet nicht mehr nachfragt!
       - name: APK builden
         run: |
-          flet build apk
+          flet build apk --no-prompt
 
       - name: APK als Download bereitstellen
         uses: actions/upload-artifact@v4
