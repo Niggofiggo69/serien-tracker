@@ -62,10 +62,9 @@ def main(page: ft.Page):
         # --- ANZEIGE AKTUALISIEREN ---
         def update_anzeige():
             nonlocal aktuelle_serie
-            # FIX: Nutzen nur noch das kompatible ft.icons.DELETE
-            btn_loeschen.text = ""
-            btn_loeschen.icon = ft.icons.DELETE
-            btn_loeschen.bgcolor = ft.colors.RED_50
+            # Reset auf das sichere Text-Emoji
+            btn_loeschen.text = "🗑️"
+            btn_loeschen.style = ft.ButtonStyle(color=ft.colors.RED_900, bgcolor=ft.colors.RED_50)
             
             if aktuelle_serie and aktuelle_serie in data:
                 s = data[aktuelle_serie]
@@ -89,10 +88,10 @@ def main(page: ft.Page):
             nonlocal aktuelle_serie
             if not aktuelle_serie or aktuelle_serie not in data: return
 
-            if btn_loeschen.text == "":
+            # Wenn im Normalzustand, frage nach Bestätigung
+            if btn_loeschen.text == "🗑️":
                 btn_loeschen.text = "Wirklich löschen? [JA]"
-                btn_loeschen.icon = ft.icons.DELETE
-                btn_loeschen.bgcolor = ft.colors.RED_700
+                btn_loeschen.style = ft.ButtonStyle(color=ft.colors.WHITE, bgcolor=ft.colors.RED_700)
                 page.update()
             else:
                 del data[aktuelle_serie]
@@ -203,15 +202,14 @@ def main(page: ft.Page):
             value=aktuelle_serie
         )
 
-        btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=280, height=40)
+        btn_waehlen = ft.ElevatedButton("Serie laden / wechseln", on_click=serie_wechseln_button, width=260, height=40)
         
-        # FIX: Hier nutzen wir jetzt ft.icons.DELETE
-        btn_loeschen = ft.IconButton(
-            icon=ft.icons.DELETE,
-            icon_color=ft.colors.RED_900,
-            bgcolor=ft.colors.RED_50,
+        # FIX: Ein simpler TextButton mit Emoji anstelle des fehlerhaften IconButtons
+        btn_loeschen = ft.TextButton(
+            text="🗑️",
+            style=ft.ButtonStyle(color=ft.colors.RED_900, bgcolor=ft.colors.RED_50),
             on_click=serie_loeschen_klick,
-            width=60,
+            width=80,
             height=40
         )
 
@@ -262,3 +260,4 @@ def main(page: ft.Page):
         page.update()
 
 ft.app(target=main)
+         
